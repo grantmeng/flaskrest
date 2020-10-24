@@ -17,9 +17,12 @@ def home():
 @app.route('/persons/')
 def persons():
     try:
-        args = request.args
+        args = dict(request.args)
+        page = per_page = None
+        if 'page' in args: page = int(args.pop('page'))
+        if 'per_page' in args: per_page = int(args.pop('per_page'))
         res = []
-        for row in Person.query.filter_by(**args):
+        for row in Person.query.filter_by(**args).paginate(page, per_page, False).items:
             row = row.to_dict()
             row['role'] = ''
             if Student.query.get(row['id']): row['role'] = 'Student'
