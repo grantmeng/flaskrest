@@ -14,34 +14,68 @@ db.init_app(app)
 def home():
     return '<h1>Class Course API</h1><li>Persons</li><li>Students</li><li>Tutors</li><li>Courses</li><li>Classes</li>'
 
-@app.route('/persons/')
+@app.route('/persons/', methods=['GET', 'POST'])
 def persons():
-    try:
-        args = dict(request.args)
-        page = per_page = None
-        if 'page' in args: page = int(args.pop('page'))
-        if 'per_page' in args: per_page = int(args.pop('per_page'))
-        res = []
-        for row in Person.query.filter_by(**args).paginate(page, per_page, False).items:
-            row = row.to_dict()
-            row['role'] = ''
-            if Student.query.get(row['id']): row['role'] = 'Student'
-            if Tutor.query.get(row['id']): row['role'] = 'Tutor'
-            res.append(row)
-        return jsonify(res)
-    except Exception as e:
-        print(e)
-        raise InvalidUsage('Invalid query string', status_code=410, payload={'payload': 'Please check the query string'})
+    if request.method == 'GET':
+        try:
+            app.logger.info('Getting person list')
+            args = dict(request.args)
+            page = per_page = None
+            if 'page' in args: page = int(args.pop('page'))
+            if 'per_page' in args: per_page = int(args.pop('per_page'))
+            res = []
+            for row in Person.query.filter_by(**args).paginate(page, per_page, False).items:
+                row = row.to_dict()
+                row['role'] = ''
+                if Student.query.get(row['id']): row['role'] = 'Student'
+                if Tutor.query.get(row['id']): row['role'] = 'Tutor'
+                res.append(row)
+            return jsonify(res)
+        except Exception as e:
+            print(e)
+            raise InvalidUsage('Invalid query string', status_code=410, payload={'payload': 'Please check the query string'})
+    elif request.method == 'POST': # curl -d "firstname=Dog&lastname=Meng&age=10" -X POST http://localhost:5000/persons/
+        dict_data = {
+            'lastname': request.form.get('lastname', ''),
+            'firstname': request.form.get('firstname', ''),
+            'age': request.form.get('age', None),
+            'gender': request.form.get('gender', 'M')
+        }
+        person = Person(**dict_data)
+        db.session.add(person)
+        db.session.commit()
+        dict_data['id'] = person.id
+        dict_data['msg'] = 'Person created'
+        return jsonify(dict_data)
 
-@app.route('/persons/<int:id>')
+@app.route('/persons/<int:id>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 def person(id):
-    res = Person.query.get(id)
-    if res:
-        res = res.to_dict()
-        res['role'] = ''
-        if Student.query.get(res['id']): res['role'] = 'Student'
-        if Tutor.query.get(res['id']): res['role'] = 'Tutor'
-    return jsonify(res)
+    if request.method == 'GET': # curl -X GET http://localhost:5000/persons/1
+        res = Person.query.get(id)
+        if res:
+            res = res.to_dict()
+            res['role'] = ''
+            if Student.query.get(res['id']): res['role'] = 'Student'
+            if Tutor.query.get(res['id']): res['role'] = 'Tutor'
+        return jsonify(res)
+    elif request.method == 'PUT': # curl -d "firstname=Bear&age=30" -X PUT http://localhost:5000/persons/5
+        lastname = request.form.get('lastname', None)
+        firstname = request.form.get('firstname', None)
+        age = request.form.get('age', None)
+        gender = request.form.get('gender', None)
+        person = Person.query.get(id)
+        if lastname: person.lastname = lastname
+        if firstname: person.firstname = firstname
+        if age: person.age = age
+        if gender: person.gender = gender
+        db.session.commit()
+        return jsonify(person.to_dict())
+    elif request.method == 'DELETE': # curl -X DELETE http://localhost:5000/persons/5
+        person = Person.query.get(id)
+        db.session.delete(person)
+        db.session.commit()
+        dict_data = {'id': id, 'msg': 'Person deleted'}
+        return jsonify(dict_data)
 
 @app.route('/students/')
 def students():
