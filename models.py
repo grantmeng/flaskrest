@@ -10,6 +10,17 @@ db = SQLAlchemy()
 
 @dataclass_json
 @dataclass
+class Authuser(db.Model):
+    id: int
+    username: str
+    password: str
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String)
+    password = Column(String)
+
+@dataclass_json
+@dataclass
 class Person(db.Model):
     id: int
     firstname: str

@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, 
 engine = create_engine(DB_URI, echo=True)
 meta = MetaData()
 meta.reflect(bind=engine) # key to get all tables
+authuser = meta.tables.get('authuser')
 person = meta.tables.get('person')
 tutor = meta.tables.get('tutor')
 student = meta.tables.get('student')
@@ -13,6 +14,13 @@ course = meta.tables.get('course')
 classes = meta.tables.get('classes')
 
 def create_tables():
+    global authuser
+    if authuser == None:
+        authuser = Table(
+           'authuser', meta, 
+           Column('id', Integer, primary_key=True), 
+           Column('username', String), 
+           Column('password', String))
     global person
     if person == None:
         peron = Table(
@@ -49,6 +57,10 @@ def create_tables():
 
 def insert_tables():
     conn = engine.connect()
+    authuser = meta.tables.get('authuser')
+    conn.execute(authuser.insert(), [
+        {'username': 'bear', 'password': 'bear'},
+        {'username': 'grant', 'password': 'grant'}])
     person = meta.tables.get('person')
     conn.execute(person.insert(), [
         {'firstname': 'Grant', 'lastname': 'Meng', 'gender': 'M', 'age': 46},
@@ -75,8 +87,6 @@ def insert_tables():
     conn.execute(classes.insert(), [
         {'course_id': 1, 'student_id': 3},
         {'course_id': 1, 'student_id': 4},
-        {'course_id': 1, 'student_id': 2},
-        {'course_id': 2, 'student_id': 1},
         {'course_id': 2, 'student_id': 3},
         {'course_id': 2, 'student_id': 4},
         {'course_id': 3, 'student_id': 3},
@@ -86,7 +96,7 @@ def insert_tables():
 
 def drop_tables():
     tables = []
-    for table in (person, course, tutor, student, classes):
+    for table in (authuser, person, course, tutor, student, classes):
         if table != None: tables.append(table)
     meta.drop_all(engine, tables=tables)
 

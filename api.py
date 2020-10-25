@@ -1,20 +1,25 @@
 #!/usr/bin/python3
 
 from flask import Flask, request, jsonify
+from flask_jwt import JWT, jwt_required, current_identity
 from config import *
+from auth import authenticate, identity
 from models import db, Person, Student, Tutor, Course, Class
 from errors import InvalidUsage
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = SECRET_KEY
 db.init_app(app)
+jwt = JWT(app, authenticate, identity)
 
 @app.route('/')
 def home():
     return '<h1>Class Course API</h1><li>Persons</li><li>Students</li><li>Tutors</li><li>Courses</li><li>Classes</li>'
 
 @app.route('/persons/', methods=['GET', 'POST'])
+@jwt_required()
 def persons():
     if request.method == 'GET':
         try:
